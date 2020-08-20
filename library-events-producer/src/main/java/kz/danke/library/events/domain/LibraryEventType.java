@@ -1,4 +1,4 @@
-package kz.danke.library.events.producer.domain;
+package kz.danke.library.events.domain;
 
 public enum LibraryEventType {
 

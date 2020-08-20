@@ -1,4 +1,4 @@
-package kz.danke.library.events.producer.util;
+package kz.danke.library.events.util;
 
 public class TopicConstants {
 

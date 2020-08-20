@@ -1,8 +1,8 @@
-package kz.danke.library.events.producer.producer;
+package kz.danke.library.events.producer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kz.danke.library.events.producer.domain.LibraryEvent;
+import kz.danke.library.events.domain.LibraryEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static kz.danke.library.events.producer.util.TopicConstants.LIBRARY_EVENTS_TOPIC_NAME;
+import static kz.danke.library.events.util.TopicConstants.LIBRARY_EVENTS_TOPIC_NAME;
 
 @Component
 @Slf4j
@@ -34,7 +34,7 @@ public class LibraryEventProducer {
         this.objectMapper = objectMapper;
     }
 
-    public void sendLibraryEvent(LibraryEvent libraryEvent) throws JsonProcessingException {
+    public ListenableFuture<SendResult<Integer, String>> sendLibraryEvent(LibraryEvent libraryEvent) throws JsonProcessingException {
         Integer key = libraryEvent.getLibraryEventId();
         String value = objectMapper.writeValueAsString(libraryEvent);
 
@@ -43,7 +43,6 @@ public class LibraryEventProducer {
                 key,
                 value
         );
-
         resultListenableFuture.addCallback(
                 new ListenableFutureCallback<>() {
                     @Override
@@ -57,6 +56,7 @@ public class LibraryEventProducer {
                     }
                 }
         );
+        return resultListenableFuture;
     }
 
     public SendResult<Integer, String> sendLibraryEventSynchronous(LibraryEvent libraryEvent) throws JsonProcessingException, ExecutionException, InterruptedException {

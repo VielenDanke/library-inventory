@@ -1,4 +1,4 @@
-package kz.danke.library.events.producer;
+package kz.danke.library.events;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

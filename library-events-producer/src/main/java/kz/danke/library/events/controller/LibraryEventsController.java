@@ -1,9 +1,9 @@
-package kz.danke.library.events.producer.controller;
+package kz.danke.library.events.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import kz.danke.library.events.producer.domain.LibraryEvent;
-import kz.danke.library.events.producer.domain.LibraryEventType;
-import kz.danke.library.events.producer.producer.LibraryEventProducer;
+import kz.danke.library.events.domain.LibraryEvent;
+import kz.danke.library.events.domain.LibraryEventType;
+import kz.danke.library.events.producer.LibraryEventProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/v1/library-events")
@@ -27,7 +29,7 @@ public class LibraryEventsController {
     @PostMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE}
     )
-    public ResponseEntity<LibraryEvent> postLibraryEvent(@RequestBody LibraryEvent libraryEvent) throws JsonProcessingException {
+    public ResponseEntity<LibraryEvent> postLibraryEvent(@Valid @RequestBody LibraryEvent libraryEvent) throws JsonProcessingException {
         libraryEvent.setLibraryEventType(LibraryEventType.NEW);
 
         libraryEventProducer.sendLibraryEvent(libraryEvent);
