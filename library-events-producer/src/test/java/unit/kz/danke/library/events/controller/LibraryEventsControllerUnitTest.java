@@ -1,5 +1,6 @@
 package kz.danke.library.events.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kz.danke.library.events.domain.Book;
 import kz.danke.library.events.domain.LibraryEvent;
@@ -98,6 +99,76 @@ public class LibraryEventsControllerUnitTest {
                 )
                 .andExpect(
                         MockMvcResultMatchers.content().string(expectedResponseEntityBody)
+                );
+    }
+
+    @Test
+    public void putLibraryEvent() throws Exception {
+        Book book = Book.builder()
+                .bookId(123)
+                .bookName("Good days")
+                .bookAuthor("Danke")
+                .build();
+
+        LibraryEvent libraryEvent = LibraryEvent.builder()
+                .libraryEventId(456)
+                .book(book)
+                .build();
+
+        SettableListenableFuture<SendResult<Integer, String>> future = new SettableListenableFuture<>();
+
+        String libraryEventJson = objectMapper.writeValueAsString(libraryEvent);
+
+        Mockito
+                .when(libraryEventProducer.sendLibraryEvent(libraryEvent))
+                .thenReturn(future);
+
+        mockMvc
+                .perform(
+                        MockMvcRequestBuilders.put("/v1/library-events")
+                        .content(libraryEventJson)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                )
+                .andExpect(
+                        MockMvcResultMatchers.status().isOk()
+                )
+                .andExpect(
+                        MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON)
+                );
+    }
+
+    @Test
+    public void putLibraryEvent_Failure() throws Exception {
+        Book book = Book.builder()
+                .bookId(123)
+                .bookName("Good days")
+                .bookAuthor("Danke")
+                .build();
+
+        LibraryEvent libraryEvent = LibraryEvent.builder()
+                .libraryEventId(null)
+                .book(book)
+                .build();
+
+        SettableListenableFuture<SendResult<Integer, String>> future = new SettableListenableFuture<>();
+
+        String libraryEventJson = objectMapper.writeValueAsString(libraryEvent);
+
+        Mockito
+                .when(libraryEventProducer.sendLibraryEvent(libraryEvent))
+                .thenReturn(future);
+
+        mockMvc
+                .perform(
+                        MockMvcRequestBuilders.put("/v1/library-events")
+                        .content(libraryEventJson)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                )
+                .andExpect(
+                        MockMvcResultMatchers.status().is4xxClientError()
+                )
+                .andExpect(
+                        MockMvcResultMatchers.content().string("Please pass the Library Event ID")
                 );
     }
 }

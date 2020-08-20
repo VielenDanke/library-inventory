@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kz.danke.library.events.domain.Book;
 import kz.danke.library.events.domain.LibraryEvent;
-import kz.danke.library.events.domain.LibraryEventType;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
@@ -100,5 +99,46 @@ public class LibraryEventsControllerIntegrationTest {
 
         Assertions.assertEquals(HttpStatus.CREATED, responseEntityLibraryEvent.getStatusCode());
         Assertions.assertEquals(entityLibraryEventBody, fromKafkaLibraryEvent);
+    }
+
+    @Test
+    public void putLibraryEvent() throws JsonProcessingException {
+        Book book = Book.builder()
+                .bookId(123)
+                .bookName("The New Book")
+                .bookAuthor("Danke")
+                .build();
+
+        LibraryEvent libraryEvent = LibraryEvent.builder()
+                .libraryEventId(456)
+                .book(book)
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<LibraryEvent> request = new HttpEntity<>(libraryEvent, headers);
+
+        ResponseEntity<LibraryEvent> responseEntityLibraryEvent = testRestTemplate
+                .exchange(
+                        "/v1/library-events",
+                        HttpMethod.PUT,
+                        request,
+                        LibraryEvent.class
+                );
+        ConsumerRecord<Integer, String> singleRecord = KafkaTestUtils.getSingleRecord(consumer, "library-events");
+
+        String value = singleRecord.value();
+        Integer key = singleRecord.key();
+
+        LibraryEvent fromKafkaLibraryEvent = objectMapper.readValue(value, LibraryEvent.class);
+        LibraryEvent entityLibraryEventBody = responseEntityLibraryEvent.getBody();
+
+        Assertions.assertEquals(HttpStatus.OK, responseEntityLibraryEvent.getStatusCode());
+        Assertions.assertNotNull(entityLibraryEventBody);
+        Assertions.assertNotNull(key);
+        Assertions.assertEquals(entityLibraryEventBody, fromKafkaLibraryEvent);
+        Assertions.assertEquals(libraryEvent.getLibraryEventId(), key);
     }
 }
