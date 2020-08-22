@@ -1,10 +1,11 @@
 package kz.danke.library.events.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 @Data
 @NoArgsConstructor
@@ -12,6 +13,10 @@ import javax.validation.constraints.NotNull;
 @Builder
 @Entity
 @Table(name = "book")
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "bookId"
+)
 public class Book {
 
     @Id

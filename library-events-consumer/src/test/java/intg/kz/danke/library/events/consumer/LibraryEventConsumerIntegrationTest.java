@@ -39,6 +39,11 @@ import java.util.concurrent.TimeUnit;
 })
 public class LibraryEventConsumerIntegrationTest {
 
+    private static final int numberOfInvocations = 1;
+    private static final int expectedSize = 1;
+    private static final int timeout = 3;
+    private static final int countOfThread = 1;
+
     @Autowired
     private EmbeddedKafkaBroker embeddedKafkaBroker;
 
@@ -79,10 +84,10 @@ public class LibraryEventConsumerIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void publishNewLibraryEvent() throws Exception {
-        final int expectedSize = 1;
+        int bookId = new Random().nextInt(1000);
 
         Book book = Book.builder()
-                .bookId(125)
+                .bookId(bookId)
                 .bookName("The New Book")
                 .bookAuthor("Danke")
                 .build();
@@ -97,16 +102,16 @@ public class LibraryEventConsumerIntegrationTest {
 
         kafkaTemplate.sendDefault(libraryEventJson).get();
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(countOfThread);
 
-        latch.await(3, TimeUnit.SECONDS);
+        latch.await(timeout, TimeUnit.SECONDS);
 
         Mockito
-                .verify(libraryEventConsumerSpy, Mockito.times(1))
+                .verify(libraryEventConsumerSpy, Mockito.times(numberOfInvocations))
                 .onMessage(Mockito.isA(ConsumerRecord.class));
 
         Mockito
-                .verify(libraryEventServiceSpy, Mockito.times(1))
+                .verify(libraryEventServiceSpy, Mockito.times(numberOfInvocations))
                 .processLibraryEvent(Mockito.isA(ConsumerRecord.class));
 
         List<LibraryEvent> eventList = libraryEventRepository
@@ -116,7 +121,7 @@ public class LibraryEventConsumerIntegrationTest {
                 .stream()
                 .findFirst()
                 .ifPresent(event -> {
-                    Assertions.assertEquals(125, event.getBook().getBookId());
+                    Assertions.assertEquals(bookId, event.getBook().getBookId());
                 });
 
         int size = eventList.size();
@@ -127,38 +132,37 @@ public class LibraryEventConsumerIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void publishUpdateLibraryEvent() throws Exception {
-        final int expectedSize = 1;
+        int bookId = new Random().nextInt(1000);
 
         Book book = Book.builder()
-                .bookId(125)
+                .bookId(bookId)
                 .bookName("The New Book")
                 .bookAuthor("Danke")
                 .build();
 
         LibraryEvent libraryEvent = LibraryEvent.builder()
                 .libraryEventId(null)
-                .libraryEventType(LibraryEventType.NEW)
-                .book(book)
+                .libraryEventType(LibraryEventType.UPDATE)
                 .build();
 
-        LibraryEvent savedLibraryEvent = libraryEventRepository.save(libraryEvent);
+        libraryEvent.addBook(book);
 
-        savedLibraryEvent.setLibraryEventType(LibraryEventType.UPDATE);
+        LibraryEvent savedLibraryEvent = libraryEventRepository.save(libraryEvent);
 
         String savedLibraryEventJson = objectMapper.writeValueAsString(savedLibraryEvent);
 
         kafkaTemplate.sendDefault(savedLibraryEventJson).get();
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(countOfThread);
 
-        latch.await(3, TimeUnit.SECONDS);
+        latch.await(timeout, TimeUnit.SECONDS);
 
         Mockito
-                .verify(libraryEventConsumerSpy, Mockito.times(1))
+                .verify(libraryEventConsumerSpy, Mockito.atLeast(numberOfInvocations))
                 .onMessage(Mockito.isA(ConsumerRecord.class));
 
         Mockito
-                .verify(libraryEventServiceSpy, Mockito.times(1))
+                .verify(libraryEventServiceSpy, Mockito.atLeast(numberOfInvocations))
                 .processLibraryEvent(Mockito.isA(ConsumerRecord.class));
 
         List<LibraryEvent> eventList = libraryEventRepository
@@ -168,7 +172,7 @@ public class LibraryEventConsumerIntegrationTest {
                 .stream()
                 .findFirst()
                 .ifPresent(event -> {
-                    Assertions.assertEquals(125, event.getBook().getBookId());
+                    Assertions.assertEquals(bookId, event.getBook().getBookId());
                 });
 
         int size = eventList.size();
@@ -179,8 +183,10 @@ public class LibraryEventConsumerIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void publishUpdateLibraryEvent_Failure() throws Exception {
+        int bookId = new Random().nextInt(1000);
+
         Book book = Book.builder()
-                .bookId(125)
+                .bookId(bookId)
                 .bookName("The New Book")
                 .bookAuthor("Danke")
                 .build();
@@ -200,16 +206,16 @@ public class LibraryEventConsumerIntegrationTest {
 
         kafkaTemplate.sendDefault(savedLibraryEventJson);
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(countOfThread);
 
-        latch.await(3, TimeUnit.SECONDS);
+        latch.await(timeout, TimeUnit.SECONDS);
 
         Mockito
-                .verify(libraryEventConsumerSpy, Mockito.atLeast(1))
+                .verify(libraryEventConsumerSpy, Mockito.atLeast(numberOfInvocations))
                 .onMessage(Mockito.isA(ConsumerRecord.class));
 
         Mockito
-                .verify(libraryEventServiceSpy, Mockito.atLeast(1))
+                .verify(libraryEventServiceSpy, Mockito.atLeast(numberOfInvocations))
                 .processLibraryEvent(Mockito.isA(ConsumerRecord.class));
 
         Assertions.assertThrows(
@@ -222,8 +228,10 @@ public class LibraryEventConsumerIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void publishUpdateLibraryEvent_FailureWithNullId() throws Exception {
+        int bookId = new Random().nextInt(1000);
+
         Book book = Book.builder()
-                .bookId(125)
+                .bookId(bookId)
                 .bookName("The New Book")
                 .bookAuthor("Danke")
                 .build();
@@ -243,16 +251,55 @@ public class LibraryEventConsumerIntegrationTest {
 
         kafkaTemplate.sendDefault(savedLibraryEventJson);
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(countOfThread);
 
-        latch.await(3, TimeUnit.SECONDS);
+        latch.await(timeout, TimeUnit.SECONDS);
 
         Mockito
-                .verify(libraryEventConsumerSpy, Mockito.atLeast(1))
+                .verify(libraryEventConsumerSpy, Mockito.atLeast(numberOfInvocations))
                 .onMessage(Mockito.isA(ConsumerRecord.class));
 
         Mockito
-                .verify(libraryEventServiceSpy, Mockito.atLeast(1))
+                .verify(libraryEventServiceSpy, Mockito.atLeast(numberOfInvocations))
                 .processLibraryEvent(Mockito.isA(ConsumerRecord.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void publishUpdateLibraryEvent_FailureWithZeroId() throws Exception {
+        final int zeroLibraryEventId = 0;
+
+        int bookId = new Random().nextInt(1000);
+
+        Book book = Book.builder()
+                .bookId(bookId)
+                .bookName("The New Book")
+                .bookAuthor("Danke")
+                .build();
+
+        LibraryEvent libraryEvent = LibraryEvent.builder()
+                .libraryEventId(zeroLibraryEventId)
+                .libraryEventType(LibraryEventType.NEW)
+                .book(book)
+                .build();
+
+        String libraryEventJson = objectMapper.writeValueAsString(libraryEvent);
+
+        kafkaTemplate.sendDefault(libraryEventJson);
+
+        CountDownLatch latch = new CountDownLatch(countOfThread);
+
+        latch.await(timeout, TimeUnit.SECONDS);
+
+//        Mockito
+//                .verify(libraryEventConsumerSpy, Mockito.times(3))
+//                .onMessage(Mockito.isA(ConsumerRecord.class));
+        Mockito
+                .verify(libraryEventServiceSpy, Mockito.times(4))
+                .processLibraryEvent(Mockito.isA(ConsumerRecord.class));
+
+        Mockito
+                .verify(libraryEventServiceSpy, Mockito.times(1))
+                .handleRecovery(Mockito.isA(ConsumerRecord.class));
     }
 }
