@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: local
+    active: nonprod
 ---
 spring:
   profiles: local
@@ -11,17 +11,33 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       retries: 10
       acks: -1
+      properties:
+        retry.backoff.ms: 1000
     admin:
       properties:
         bootstrap.servers: localhost:9092,localhost:9093,localhost:9094
 ---
 spring:
-  profiles: dev
+  profiles: nonprod
   kafka:
+    template:
+      default-topic: library-events
     producer:
-      bootstrap-servers: dev:9092,dev:9093,dev:9094
+      bootstrap-servers: localhost:9095,localhost:9096,localhost:9097
       key-serializer: org.apache.kafka.common.serialization.IntegerSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 10
+      acks: -1
+      security:
+        protocol: SSL
+      ssl:
+        trust-store-location: file:/home/vielen/IdeaProjects/library-inventory/ssl/client.truststore.jks
+        trust-store-password: ${sslPassword}
+        key-store-location: file:/home/vielen/IdeaProjects/library-inventory/ssl/client.keystore.jks
+        key-store-password: ${sslPassword}
+      properties:
+        retry.backoff.ms: 1000
+        ssl.endpoint.identification.algorithm:
 ---
 spring:
   profiles: prod

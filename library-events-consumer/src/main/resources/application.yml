@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: local
+    active: nonprod
 server:
   port: 8281
 ---
@@ -14,6 +14,10 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.IntegerDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       group-id: library-events-listener-group
+      properties:
+        partition:
+          assignment:
+            strategy: org.apache.kafka.clients.consumer.RoundRobinAssignor
     producer:
       bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
       key-serializer: org.apache.kafka.common.serialization.IntegerSerializer
@@ -30,12 +34,42 @@ spring:
       enabled: true
 ---
 spring:
-  profiles: dev
+  profiles: nonprod
   kafka:
+    template:
+      default-topic: library-events
     consumer:
-      bootstrap-servers: dev:9092,dev:9093,dev:9094
+      bootstrap-servers: localhost:9095,localhost:9096,localhost:9097
       key-deserializer: org.apache.kafka.common.serialization.IntegerDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: library-events-listener-group
+      security:
+        protocol: SSL
+      ssl:
+        trust-store-location: file:/home/vielen/IdeaProjects/library-inventory/ssl/client.truststore.jks
+        trust-store-password: ${sslPassword}
+        key-store-location: file:/home/vielen/IdeaProjects/library-inventory/ssl/client.keystore.jks
+        key-store-password: ${sslPassword}
+      properties:
+        retry.backoff.ms: 1000
+        ssl.endpoint.identification.algorithm:
+        partition:
+          assignment:
+            strategy: org.apache.kafka.clients.consumer.RoundRobinAssignor
+    producer:
+      bootstrap-servers: localhost:9095,localhost:9096,localhost:9097
+      key-serializer: org.apache.kafka.common.serialization.IntegerSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  datasource:
+    url: jdbc:h2:mem:test
+    driver-class-name: org.h2.Driver
+  jpa:
+    database: h2
+    database-platform: org.hibernate.dialect.H2Dialect
+    generate-ddl: true
+  h2:
+    console:
+      enabled: true
 ---
 spring:
   profiles: prod
